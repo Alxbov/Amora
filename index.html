@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090B24">
+  <title>AMORA | Meet. Connect. Belong.</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #090B24;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: #141735;
+      border: 1px solid #302c59;
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: 0 15px 45px #0008;
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 4px;
+      color: #ffc629;
+      margin-bottom: 8px;
+    }
+
+    .tagline {
+      text-align: center;
+      color: #c4c3d8;
+      margin-bottom: 28px;
+      font-size: 14px;
+    }
+
+    h2 { text-align: center; margin-bottom: 22px; }
+
+    label {
+      display: block;
+      margin: 14px 0 7px;
+      color: #deddf0;
+      font-size: 13px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #45436a;
+      background: #0d102b;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus { border-color: #885cff; }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      border: 0;
+      border-radius: 10px;
+      background: #7044ed;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: .6; }
+
+    .switch {
+      text-align: center;
+      color: #c4c3d8;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+
+    .switch a {
+      color: #ffc629;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #message {
+      text-align: center;
+      font-size: 13px;
+      margin-top: 16px;
+      overflow-wrap: anywhere;
+    }
+
+    .hidden { display: none; }
+
+    #welcome {
+      text-align: center;
+    }
+
+    .small {
+      color: #c4c3d8;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <div class="logo">AMORA</div>
+    <div class="tagline">Meet. Connect. Belong.</div>
+
+    <section id="authSection">
+      <h2 id="formTitle">Create your account</h2>
+
+      <form id="authForm">
+        <div id="nameField">
+          <label for="username">Your display name</label>
+          <input id="username" type="text"
+            placeholder="What should people call you?"
+            maxlength="30">
+        </div>
+
+        <label for="email">Email address</label>
+        <input id="email" type="email"
+          placeholder="you@example.com" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password"
+          placeholder="At least 6 characters"
+          minlength="6" required>
+
+        <button id="submitButton" type="submit">
+          Create account
+        </button>
+      </form>
+
+      <div class="switch">
+        <span id="switchText">Already have an account?</span>
+        <a id="switchMode">Log in</a>
+      </div>
+
+      <p id="message" role="status"></p>
+    </section>
+
+    <section id="welcome" class="hidden">
+      <h2>Welcome to AMORA! 💜</h2>
+      <p id="welcomeName"></p>
+      <p class="small">
+        Your account is ready. Our next step is building
+        your profile and international chatrooms.
+      </p>
+      <button id="logoutButton">Log out</button>
+    </section>
+  </main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyAKXpfqmyW2z1taTm0EU8RhREY0MHCzaBw",
+  authDomain: "amora-chatting-app.firebaseapp.com",
+  projectId: "amora-chatting-app",
+  storageBucket: "amora-chatting-app.firebasestorage.app",
+  messagingSenderId: "455729124091",
+ appId: "1:455729124091:web:d51ebb4559b3bd43ae965e"
+};
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const authSection = document.getElementById("authSection");
+    const welcome = document.getElementById("welcome");
+    const authForm = document.getElementById("authForm");
+    const username = document.getElementById("username");
+    const nameField = document.getElementById("nameField");
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+    const message = document.getElementById("message");
+    const submitButton = document.getElementById("submitButton");
+    const formTitle = document.getElementById("formTitle");
+    const switchText = document.getElementById("switchText");
+    const switchMode = document.getElementById("switchMode");
+    const welcomeName = document.getElementById("welcomeName");
+    const logoutButton = document.getElementById("logoutButton");
+
+    let isLogin = false;
+
+    switchMode.addEventListener("click", () => {
+      isLogin = !isLogin;
+      formTitle.textContent = isLogin ? "Welcome back" : "Create your account";
+      submitButton.textContent = isLogin ? "Log in" : "Create account";
+      switchText.textContent = isLogin
+        ? "Don't have an account?"
+        : "Already have an account?";
+      switchMode.textContent = isLogin ? "Sign up" : "Log in";
+      nameField.classList.toggle("hidden", isLogin);
+      message.textContent = "";
+    });
+
+    authForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+      submitButton.disabled = true;
+
+      try {
+        if (isLogin) {
+          await signInWithEmailAndPassword(
+            auth,
+            email.value.trim(),
+            password.value
+          );
+        } else {
+          const displayName = username.value.trim();
+
+          if (!displayName) {
+            throw new Error("Please enter your display name.");
+          }
+
+          const result = await createUserWithEmailAndPassword(
+            auth,
+            email.value.trim(),
+            password.value
+          );
+
+          await setDoc(doc(db, "users", result.user.uid), {
+            username: displayName,
+            email: result.user.email,
+            createdAt: serverTimestamp()
+          });
+        }
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        authSection.classList.add("hidden");
+        welcome.classList.remove("hidden");
+
+        const profile = await import(
+          "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"
+        );
+
+        const { getDoc } = profile;
+        const snapshot = await getDoc(doc(db, "users", user.uid));
+
+        welcomeName.textContent = snapshot.exists()
+          ? "Hello, " + snapshot.data().username + "!"
+          : "Welcome to AMORA!";
+      } else {
+        authSection.classList.remove("hidden");
+        welcome.classList.add("hidden");
+      }
+    });
+
+    logoutButton.addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    });
+// AMORA REAL-TIME CHAT AND MEMBER PROFILES
+
+const chatTools = await import(
+  "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"
+);
+
+const {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  getDoc
+} = chatTools;
+
+let stopMessages = null;
+let stopProfiles = null;
+
+const chatPanel = document.createElement("section");
+chatPanel.id = "amoraChat";
+
+chatPanel.innerHTML = `
+  <div style="margin-top:25px;text-align:left">
+    <h2>💬 Global Chatroom</h2>
+    <p style="color:#c4c3d8;font-size:13px">
+      Meet and connect with everyone on AMORA.
+    </p>
+
+    <div id="memberList"
+      style="background:#0d102b;padding:12px;border-radius:12px;margin-bottom:15px">
+      <b>Members</b>
+      <div id="members">Loading members...</div>
+    </div>
+
+    <div id="chatMessages"
+      style="height:300px;overflow-y:auto;background:#0d102b;padding:12px;border-radius:12px">
+      Loading messages...
+    </div>
+
+    <form id="chatForm" style="margin-top:12px">
+      <input id="chatInput" maxlength="1000"
+        placeholder="Write a message..." required>
+      <button id="sendButton" type="submit">Send message</button>
+    </form>
+
+    <p id="chatStatus" class="small"></p>
+  </div>
+`;
+
+welcome.appendChild(chatPanel);
+
+const chatMessages = chatPanel.querySelector("#chatMessages");
+const members = chatPanel.querySelector("#members");
+const chatForm = chatPanel.querySelector("#chatForm");
+const chatInput = chatPanel.querySelector("#chatInput");
+const chatStatus = chatPanel.querySelector("#chatStatus");
+
+function showText(parent, text, color) {
+  const p = document.createElement("p");
+  p.textContent = text;
+  p.style.color = color || "#ffffff";
+  p.style.overflowWrap = "anywhere";
+  parent.appendChild(p);
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (stopMessages) stopMessages();
+  if (stopProfiles) stopProfiles();
+
+  if (!user) {
+    chatPanel.remove();
+    return;
+  }
+
+  chatPanel.style.display = "block";
+
+  try {
+    const profileRef = doc(db, "users", user.uid);
+    const profileSnap = await getDoc(profileRef);
+
+    let myName = profileSnap.exists()
+      ? profileSnap.data().username
+      : (user.email || "AMORA Member").split("@")[0];
+
+    if (!profileSnap.exists()) {
+      await setDoc(profileRef, {
+        username: myName,
+        email: user.email || "",
+        createdAt: serverTimestamp()
+      });
+    }
+
+    const messagesQuery = query(
+      collection(db, "messages"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+
+    stopMessages = onSnapshot(messagesQuery, (snapshot) => {
+      chatMessages.innerHTML = "";
+
+      const messages = snapshot.docs
+        .map(item => item.data())
+        .filter(item => item.roomId === "global")
+        .reverse();
+
+      if (messages.length === 0) {
+        showText(chatMessages, "Be the first to say hello! 💜");
+      }
+
+      messages.forEach(item => {
+        const line = document.createElement("div");
+        line.style.padding = "9px";
+        line.style.marginBottom = "8px";
+        line.style.background = "#202347";
+        line.style.borderRadius = "9px";
+
+        const name = document.createElement("b");
+        name.textContent = item.senderName || "AMORA Member";
+        name.style.color = "#ffc629";
+
+        const content = document.createElement("p");
+        content.textContent = item.text || "";
+        content.style.margin = "5px 0";
+
+        line.appendChild(name);
+        line.appendChild(content);
+        chatMessages.appendChild(line);
+      });
+
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, error => {
+      chatStatus.textContent = error.message;
+    });
+
+    stopProfiles = onSnapshot(
+      collection(db, "users"),
+      snapshot => {
+        members.innerHTML = "";
+
+        snapshot.forEach(item => {
+          const data = item.data();
+          const name = data.username || "AMORA Member";
+
+          const member = document.createElement("p");
+          member.textContent =
+            "👤 " + name +
+            (item.id === user.uid ? " (You)" : "");
+
+          member.style.color = "#ffffff";
+          members.appendChild(member);
+        });
+      }
+    );
+
+    chatForm.onsubmit = async (event) => {
+      event.preventDefault();
+
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      const sendButton = chatForm.querySelector("#sendButton");
+      sendButton.disabled = true;
+
+      try {
+        await addDoc(collection(db, "messages"), {
+          text: text,
+          senderUid: user.uid,
+          senderName: myName,
+          roomId: "global",
+          createdAt: serverTimestamp()
+        });
+
+        chatInput.value = "";
+        chatStatus.textContent = "";
+      } catch (error) {
+        chatStatus.textContent = error.message;
+      } finally {
+        sendButton.disabled = false;
+      }
+    };
+
+  } catch (error) {
+    chatStatus.textContent = error.message;
+  }
+});
+  </script>
+</body>
+</html>
+
